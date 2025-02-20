@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"math/rand"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -55,14 +57,96 @@ func main() {
 	// Inisialisasi router
 	router := gin.Default()
 
+	// Endpoint root menampilkan informasi JSON statis
+	router.GET("/", apiInfo)
+	
 	// Endpoint untuk mengambil semua kata dengan limit
-	router.GET("/", getAllWords)
+	router.GET("/words", getAllWords)
+
+	router.GET("/randomwords", getRandomWords)
 
 	// Endpoint untuk mencari kata berdasarkan query parameter
 	router.GET("/search", searchWord)
 
 	// Jalankan server
 	router.Run(":8080")
+}
+
+// Handler untuk menampilkan informasi API
+func apiInfo(c *gin.Context) {
+	info := gin.H{
+		"api": gin.H{
+			"name":        "API KBBI IV",
+			"description": "API KBBI (Kamus Besar Bahasa Indonesia) versi IV ini digunakan untuk mencari arti kata dalam bahasa Indonesia.",
+			"version":     "1.0.0",
+			"endpoint": []gin.H{
+				{
+					"url":         "/",
+					"description": "Menampilkan informasi tentang API KBBI IV.",
+					"method":      "GET",
+					"params":      []gin.H{},
+				},
+				{
+					"url":         "/search/:kata",
+					"description": "Mencari arti kata dalam bahasa Indonesia.",
+					"method":      "GET",
+					"params": []gin.H{
+						{
+							"name":        "kata",
+							"description": "Kata yang ingin dicari artinya.",
+							"type":        "string",
+							"required":    true,
+						},
+					},
+				},
+				{
+					"url":         "/words?limit=10",
+					"description": "Menampilkan daftar kata yang tersedia dalam API KBBI IV.",
+					"method":      "GET",
+					"params": []gin.H{
+						{
+							"name":        "limit",
+							"description": "Batas jumlah kata yang ingin ditampilkan.",
+							"type":        "number",
+							"required":    false,
+						},
+					},
+				},
+				{
+					"url":         "/randomwords?limit=10",	
+					"description": "Menampilkan daftar kata yang tersedia dalam API KBBI IV secara acak.",
+					"method":      "GET",
+					"params": []gin.H{
+						{
+							"name":        "limit",
+							"description": "Batas jumlah kata yang ingin ditampilkan.",
+							"type":        "number",
+							"required":    false,
+						},
+					},
+				},
+				{
+					"url":         "/search?word=kata",
+					"description": "Mencari arti kata dalam bahasa Indonesia.",
+					"method":      "GET",
+					"params": []gin.H{
+						{
+							"name":        "word",
+							"description": "Kata yang ingin dicari artinya.",
+							"type":        "string",
+							"required":    true,
+						},
+					},
+				},
+			},
+		},
+		"author": gin.H{
+			"name":   "Kang Cahya",
+			"blog":   "https://kang-cahya.com",
+			"github": "https://github.com/dyazincahya",
+		},
+	}
+	c.JSON(http.StatusOK, info)
 }
 
 // Handler untuk mengambil semua kata dengan limit
@@ -106,6 +190,55 @@ func getAllWords(c *gin.Context) {
 	}
 
 	// Berikan respon JSON
+	c.JSON(http.StatusOK, words)
+}
+
+func getRandomWords(c *gin.Context) {
+	limitStr := c.Query("limit")
+	limit := 1000 // Default limit jika tidak diatur oleh user
+
+	// Parsing limit jika diberikan
+	if limitStr != "" {
+		parsedLimit, err := strconv.Atoi(limitStr)
+		if err != nil || parsedLimit <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Parameter 'limit' harus berupa angka positif"})
+			return
+		}
+		if parsedLimit > 1000 {
+			parsedLimit = 1000 // Batasi limit maksimal menjadi 1000
+		}
+		limit = parsedLimit
+	}
+
+	// Ambil semua kata dari database
+	rows, err := db.Query("SELECT word, arti, type FROM api_kbbi_IV")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+		return
+	}
+	defer rows.Close()
+
+	// Simpan semua kata dalam slice
+	var words []KBBI
+	for rows.Next() {
+		var entry KBBI
+		if err := rows.Scan(&entry.Word, &entry.Definition, &entry.Type); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca data"})
+			return
+		}
+		words = append(words, entry)
+	}
+
+	// Acak daftar kata
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(words), func(i, j int) { words[i], words[j] = words[j], words[i] })
+
+	// Batasi jumlah kata sesuai limit
+	if len(words) > limit {
+		words = words[:limit]
+	}
+
+	// Berikan response JSON
 	c.JSON(http.StatusOK, words)
 }
 
