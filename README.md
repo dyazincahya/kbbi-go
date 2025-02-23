@@ -1,2 +1,2 @@
-# kbbi-go
-API KBBI IV using Go Lang
+# KBBI GO
+API KBBI IV menggunakan bahasa pemrograman Go Lang
