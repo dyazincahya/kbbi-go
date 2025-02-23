@@ -31,3 +31,9 @@ Untuk membangun aplikasi menjadi versi produksi, Anda dapat menjalankan perintah
 ``` bash
 go build main.go
 ```
+
+## Demo
+Anda dapat mencoba demo API-nya disini : [https://services.x-labs.my.id/kbbi/](https://services.x-labs.my.id/kbbi/)
+
+## Penulis
+[Kang Cahya](https://www.kang-cahya.com)
