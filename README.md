@@ -1,5 +1,5 @@
 # KBBI GO
-API KBBI IV menggunakan bahasa pemrograman Go Lang
+API KBBI menggunakan bahasa pemrograman Go Lang
 
 ## Spesifikasi
 - GO v1.24.x
