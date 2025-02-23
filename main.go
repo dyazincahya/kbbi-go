@@ -252,7 +252,7 @@ func searchWord(c *gin.Context) {
 	}
 
 	var entry KBBI
-	err := db.QueryRow("SELECT word, arti, type FROM api_kbbi_IV WHERE word = ?", word).
+	err := db.QueryRow("SELECT word, arti, type FROM api_kbbi_IV WHERE word LIKE ?", "%"+word+"%").
 		Scan(&entry.Word, &entry.Definition, &entry.Type)
 
 	if err != nil {
